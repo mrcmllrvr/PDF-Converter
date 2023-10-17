@@ -1,3 +1,1 @@
 tesseract-ocr
-tesseract-ocr-eng  # If you need English language support
-# Add more language packs as needed, like:
