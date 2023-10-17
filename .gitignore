@@ -1,0 +1,40 @@
+# Python-specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Virtual environment
+venv/
+env/
+
+# IDE-specific files and directories
+.vscode/
+.idea/
+
+# Compiled files
+*.exe
+*.o
+*.out
+*.so
+
+# Compiled Python files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Temporary files
+*.log
+*.swp
+
+# Streamlit-specific files
+streamlit_cache/
+streamlit_data/
+
+# Environment variables
+.env
+
+# Output and generated files
+extracted_data.xlsx
