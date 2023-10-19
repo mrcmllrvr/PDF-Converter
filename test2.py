@@ -156,9 +156,21 @@ def main():
         if results:
             df = pd.DataFrame(results)
             st.subheader("Results")
-            st.data_editor(df)
-            df.to_excel('extracted_data.xlsx', index=False)
-            st.write("Data saved to extracted_data.xlsx!")
+            st.dataframe(df)
+            
+            # Save DataFrame to a BytesIO object
+            output = BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False)
+            output.seek(0)
+            
+            # Create a download button for the Excel file
+            st.download_button(
+                label="Download extracted data",
+                data=output,
+                file_name='extracted_data.xlsx',
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
 
 if __name__ == '__main__':
     multiprocessing.freeze_support()
