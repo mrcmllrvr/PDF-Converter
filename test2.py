@@ -17,6 +17,8 @@ import io
 
 load_dotenv()
 
+st.set_page_config(page_title="PDF Extraction", page_icon=":bird:")
+
 # 1. Convert PDF file into images via pypdfium2
 def convert_pdf_to_images(file_path, scale=500/72):
     print(f"Processing PDF at path: {file_path}")
@@ -57,16 +59,15 @@ def extract_text_from_img(list_dict_final_images):
     for index, image_bytes in enumerate(image_list):
         image = Image.open(io.BytesIO(image_bytes))
         
-        # Display the image using st.image
-        st.image(image, caption=f'Page {index + 1}', use_column_width=True)
+        # Uncomment to display the image using st.image
+        # st.image(image, caption=f'Page {index + 1}', use_column_width=True)
         
         processed_image = preprocess_image(image)
         raw_text = str(image_to_string(processed_image, config='--oem 3 --psm 6'))
 
         # Display the raw OCR content to check for accuracy
-        st.text(raw_text)
-
-    image_content.append(raw_text)
+        # st.text(raw_text) # uncomment to show the extracted texts
+        image_content.append(raw_text)
 
     return "\n".join(image_content)
 
@@ -114,20 +115,14 @@ def extract_structured_data(content: str, data_points):
 
 # 5. Streamlit app
 def main():
-    default_data_points = """{
-        "Name": "name of the employee",
-        "Net Pay": "how much does the employee earn",
-        "Company Name": "company that the employee is working for",
-        "Basic Pay": "Basic pay of the employee"
-    }"""
-
-    st.set_page_config(page_title="PDF Extraction", page_icon=":bird:")
     st.header("PDF Extraction :bird:")
 
-    data_points = st.text_area("Data points", value=default_data_points, height=170)
-    uploaded_files = st.file_uploader("upload PDFs", accept_multiple_files=True)
+    # The user's input will be taken from this field
+    column_filters = st.text_area("Input the word(s) you want to search (separate by newlines):")
+    column_filters = [item.strip() for item in column_filters.splitlines() if item]
+    uploaded_files = st.file_uploader("Upload file(s):", accept_multiple_files=True)
 
-    if uploaded_files is not None and data_points is not None:
+    if uploaded_files and column_filters:
         results = []
         for file in uploaded_files:
             temp_filename = f"temp_{uuid.uuid4()}.pdf"
@@ -137,11 +132,11 @@ def main():
 
             try:
                 content = extract_content_from_url(temp_filename)
-                data = extract_structured_data(content, data_points)
+                data = extract_structured_data(content, ', '.join(column_filters))
                 json_data = json.loads(data)
 
                 for item in json_data:
-                    item['filename'] = filename
+                    item['File Name'] = filename  # Adding file name to each dictionary
 
                 results.extend(json_data) if isinstance(json_data, list) else results.append(json_data)
             except Exception as e:
@@ -155,13 +150,27 @@ def main():
 
         if results:
             df = pd.DataFrame(results)
-            st.subheader("Results")
-            st.dataframe(df)
-            
+
+            # Add 'filename' to column_filters so that it's included in the filtered results
+            column_filters.append('File Name')  
+
+            # New filtering logic
+            filtered_data = []
+            for column in column_filters:
+                if column in df.columns:
+                    filtered_data.append(df[column])
+                else:
+                    st.warning(f"Column '{column}' not found in the data.")
+
+            if filtered_data:
+                filtered_df = pd.concat(filtered_data, axis=1)
+                st.subheader("Results")
+                st.dataframe(filtered_df)
+
             # Save DataFrame to a BytesIO object
             output = BytesIO()
             with pd.ExcelWriter(output, engine='openpyxl') as writer:
-                df.to_excel(writer, index=False)
+                filtered_df.to_excel(writer, index=False)
             output.seek(0)
             
             # Create a download button for the Excel file
